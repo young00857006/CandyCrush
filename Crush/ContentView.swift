@@ -17,9 +17,14 @@ struct ContentView: View {
     @State private var datas = [Data]()
     @State private var startDetectDrag = false
     @State private var temp = Int()
+    @State private var enabled = false
+    @State private var arr = [Int]()
+    @State private var exTemp = Int()
+    
+    
     func initial(){
         datas.removeAll()
-        for i in 1...25{
+        for _ in 1...25{
             datas.append(Data(name: Int.random(in: 1..<7)))
         }
         
@@ -30,6 +35,7 @@ struct ContentView: View {
         if(index%5 < 4){
             datas[index].name = datas[index+1].name
             datas[index+1].name = temp
+            enabled.toggle()
         }
     }
     
@@ -38,6 +44,7 @@ struct ContentView: View {
         if(index%5 > 0){
             datas[index].name = datas[index-1].name
             datas[index-1].name = temp
+            enabled.toggle()
         }
     }
     func exDown(index:Int){
@@ -45,6 +52,7 @@ struct ContentView: View {
         if(index < 20){
             datas[index].name = datas[index+5].name
             datas[index+5].name = temp
+            enabled.toggle()
         }
     }
     
@@ -53,57 +61,160 @@ struct ContentView: View {
         if(index > 4){
             datas[index].name = datas[index-5].name
             datas[index-5].name = temp
+            enabled.toggle()
         }
     }
     
-    var body: some View {
-        Button("start"){
-            initial()
+    func check()->Bool{
+        if(arr.isEmpty){
+            return true
         }
-        VStack{
-        let columns = Array(repeating: GridItem(), count: 5)
-        LazyVGrid(columns: columns) {
-            ForEach(Array(datas.enumerated()), id: \.element.id) { index, data in
-                Rectangle()
-                    .opacity(0.7)
-                    .aspectRatio(1, contentMode: .fit)
-                    .overlay(
-                        Image("\(data.name)")
-                            .resizable()
-                            .scaledToFill()
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged({ value in
-                                        if startDetectDrag {
-                                            if value.translation.width > 5 {
-                                                exRight(index: index)
-                                                startDetectDrag = false
-                                            }
-                                            else if value.translation.width < -5 {
-                                                exLeft(index: index)
-                                                startDetectDrag = false
-                                            }
-                                            else if value.translation.height > 5 {
-                                                exDown(index: index)
-                                                startDetectDrag = false
-                                            }
-                                            else if value.translation.height < -5 {
-                                                exUp(index: index)
-                                                startDetectDrag = false
-                                            }
-                                        }
-                                        else {
-                                            if value.translation == .zero {
-                                                startDetectDrag = true
-                                            }
-                                        }
-                                    })
-                            )
-                    )
-                    .clipped()
-                    
+        else{
+            return false
+        }
+    }
+    
+    func judge(){
+        arr.removeAll()
+        //vertical
+        for i in 0..<20{
+            var index = i + 5
+            var temp = 1
+            while(index < 25){
+                if(datas[i].name == datas[index].name){
+                    temp += 1
+                    index += 5
+                }
+                else{
+                    break
+                }
+            }
+            if(temp > 2){
+                for i in stride(from: i, to: index, by: 5){
+                    var have = false
+                    for j in arr {
+                        if(j == i){
+                            have = true
+                            break
+                        }
+                    }
+                    if(!have){
+                        arr.append(i)
+                    }
+                }
             }
         }
+        
+        //horizontal
+        for i in 0..<23{
+            if(i%5 < 3){
+                var index = i + 1
+                var temp = 1
+                while(index%5 > i%5 && i < 25){
+                    if(datas[i].name == datas[index].name){
+                        temp += 1
+                        index += 1
+                    }
+                    else{
+                        break
+                    }
+                }
+                if(temp > 2){
+                    for i in stride(from: i, to: index, by: 1){
+                        var have = false
+                        for j in arr {
+                            if(j == i){
+                                have = true
+                                break
+                            }
+                        }
+                        if(!have){
+                            arr.append(i)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+   
+    
+    var body: some View {
+        Button("Random"){
+            initial()
+           
+        }
+        VStack{
+            let columns = Array(repeating: GridItem(), count: 5)
+            LazyVGrid(columns: columns) {
+                ForEach(Array(datas.enumerated()), id: \.element.id) { index, data in
+                    Rectangle()
+                        .aspectRatio(1, contentMode: .fit)
+                        .opacity(0.7)
+                        .overlay(
+                            Image("\(data.name)")
+                                .resizable()
+                                .scaledToFill()
+                                .animation(.spring(dampingFraction: 0.1).speed(2), value: enabled)
+                            
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged({ value in
+                                            if startDetectDrag {
+                                                if value.translation.width > 5 {
+                                                   exTemp = 0
+                                                    exRight(index: index)
+                                                    startDetectDrag = false
+                                                }
+                                                else if value.translation.width < -5 {
+                                                   exTemp = 1
+                                                    exLeft(index: index)
+                                                    startDetectDrag = false
+                                                }
+                                                else if value.translation.height > 5 {
+                                                    exTemp = 2
+                                                    exDown(index: index)
+                                                    startDetectDrag = false
+                                                }
+                                                else if value.translation.height < -5 {
+                                                    exTemp = 3
+                                                    exUp(index: index)
+                                                    startDetectDrag = false
+                                                }
+                                            }
+                                            else {
+                                                if value.translation == .zero {
+                                                    startDetectDrag = true
+                                                }
+                                            }
+                                        })
+                                        .onEnded{  _ in
+                                            judge()
+                                            if(check()){
+                                                if(exTemp == 0){
+                                                    exRight(index: index)
+                                                    startDetectDrag = false
+                                                }
+                                                else if(exTemp == 1){
+                                                    exLeft(index: index)
+                                                    startDetectDrag = false
+                                                }
+                                                else if(exTemp == 2){
+                                                    exDown(index: index)
+                                                    startDetectDrag = false
+                                                }
+                                                else if(exTemp == 3){
+                                                    exUp(index: index)
+                                                    startDetectDrag = false
+                                                }
+                                            }
+                                        }
+                                )
+                                
+                        )
+                        .clipped()
+                }
+            }
         }
     }
 }
