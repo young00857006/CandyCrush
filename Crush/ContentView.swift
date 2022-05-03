@@ -10,6 +10,7 @@ import SwiftUI
 struct Data: Identifiable{
     let id = UUID()
     var name: Int
+    var rotateDegree = 0.0
 }
 
 struct ContentView: View {
@@ -20,6 +21,7 @@ struct ContentView: View {
     @State private var enabled = false
     @State private var arr = [Int]()
     @State private var exTemp = Int()
+    @State private var correct = false
     
     
     func initial(){
@@ -135,15 +137,51 @@ struct ContentView: View {
                 }
             }
         }
+        print(arr)
+    }
+    func Correct(){
+        
+        for i in arr{
+            datas[i].rotateDegree = 360
+            correct.toggle()
+        }
+    }
+    func generate(){
+            for i in arr{
+                datas[i].rotateDegree = 0
+                datas[i].name = Int.random(in: 1..<7)
+            }
     }
     
-   
-    
+    func test(){
+        print("------")
+        judge()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            Correct()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                print("1")
+                generate()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    print("2")
+                    judge()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0) {
+                        if(!check()){
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0) {
+                                test()
+                            }
+                        }
+                    }
+                }
+                
+            }
+        }
+    }
     var body: some View {
         Button("Random"){
             initial()
-           
+            test()
         }
+        
         VStack{
             let columns = Array(repeating: GridItem(), count: 5)
             LazyVGrid(columns: columns) {
@@ -151,18 +189,21 @@ struct ContentView: View {
                     Rectangle()
                         .aspectRatio(1, contentMode: .fit)
                         .opacity(0.7)
+                        
                         .overlay(
                             Image("\(data.name)")
                                 .resizable()
                                 .scaledToFill()
-                                .animation(.spring(dampingFraction: 0.1).speed(2), value: enabled)
-                            
+                                .rotationEffect(.degrees(data.rotateDegree))
+                                .animation(.easeInOut.delay(1), value: correct)
+                                .animation(.spring(dampingFraction: 0.5).speed(2), value: enabled)
+//                                .animation(.spring(dampingFraction: 0.1).speed(2).delay(10), value: correct)
                                 .gesture(
                                     DragGesture(minimumDistance: 0)
                                         .onChanged({ value in
                                             if startDetectDrag {
                                                 if value.translation.width > 5 {
-                                                   exTemp = 0
+                                                    exTemp = 0
                                                     exRight(index: index)
                                                     startDetectDrag = false
                                                 }
@@ -187,6 +228,7 @@ struct ContentView: View {
                                                     startDetectDrag = true
                                                 }
                                             }
+                                           
                                         })
                                         .onEnded{  _ in
                                             judge()
@@ -208,14 +250,17 @@ struct ContentView: View {
                                                     startDetectDrag = false
                                                 }
                                             }
+                                           test()
                                         }
                                 )
-                                
+                           
                         )
                         .clipped()
                 }
             }
         }
+//        .animation(.spring(dampingFraction: 0.1).speed(2),value: enabled)
+        
     }
 }
 
