@@ -22,7 +22,12 @@ struct ContentView: View {
     @State private var arr = [Int]()
     @State private var exTemp = Int()
     @State private var correct = false
+    @State private var score = 0
+    @State private var timeRemaining = 20
+    @State private var timeStop = false
+    @State private var start = true
     
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     func initial(){
         datas.removeAll()
@@ -92,6 +97,7 @@ struct ContentView: View {
                 }
             }
             if(temp > 2){
+                score += 1
                 for i in stride(from: i, to: index, by: 5){
                     var have = false
                     for j in arr {
@@ -122,6 +128,7 @@ struct ContentView: View {
                     }
                 }
                 if(temp > 2){
+                    score += 1
                     for i in stride(from: i, to: index, by: 1){
                         var have = false
                         for j in arr {
@@ -137,7 +144,7 @@ struct ContentView: View {
                 }
             }
         }
-        print(arr)
+       
     }
     func Correct(){
         
@@ -154,15 +161,12 @@ struct ContentView: View {
     }
     
     func test(){
-        print("------")
         judge()
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             Correct()
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                print("1")
                 generate()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    print("2")
                     judge()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0) {
                         if(!check()){
@@ -177,25 +181,39 @@ struct ContentView: View {
         }
     }
     var body: some View {
-        Button("Random"){
-            initial()
-            test()
-        }
+        
         
         VStack{
+            Button("Random"){
+                initial()
+                test()
+            }
+            Text("分數\(score)")
+            Text("剩餘\(timeRemaining)秒")
+                .onReceive(timer) { _ in
+                    if timeRemaining > 0 {
+                        timeRemaining -= 1
+                        timeStop = false
+                    }
+                    else if(timeRemaining == 0){
+                        timeStop = true
+                    }
+                }
             let columns = Array(repeating: GridItem(), count: 5)
             LazyVGrid(columns: columns) {
                 ForEach(Array(datas.enumerated()), id: \.element.id) { index, data in
                     Rectangle()
+                        .fill(Color.purple)
                         .aspectRatio(1, contentMode: .fit)
-                        .opacity(0.7)
-                        
+                        .opacity(0.1)
+                    
                         .overlay(
                             Image("\(data.name)")
                                 .resizable()
+                                .opacity(1)
                                 .scaledToFill()
                                 .rotationEffect(.degrees(data.rotateDegree))
-                                .animation(.easeInOut.delay(1), value: correct)
+                                .animation(.easeInOut(duration: 0.5).delay(1), value: correct)
                                 .animation(.spring(dampingFraction: 0.5).speed(2), value: enabled)
 //                                .animation(.spring(dampingFraction: 0.1).speed(2).delay(10), value: correct)
                                 .gesture(
@@ -259,7 +277,27 @@ struct ContentView: View {
                 }
             }
         }
-//        .animation(.spring(dampingFraction: 0.1).speed(2),value: enabled)
+        .background(Image("animal")
+                    .resizable()
+                    .scaledToFill()
+                    .clipped())
+        .alert("Are You Ready?", isPresented: $start, actions: {
+            Button("Ready!!!"){
+                score = 0
+                initial()
+                test()
+                timeRemaining = 20
+                start = false
+            }
+        })
+        .alert("Your Score : \(score)", isPresented: $timeStop, actions: {
+            Button("OK"){
+                score = 0
+                initial()
+                test()
+                timeRemaining = 20
+            }
+            })
         
     }
 }
