@@ -288,6 +288,7 @@ struct ContentView: View {
                 test()
                 timeRemaining = 20
                 start = false
+                timeStop = false
             }
         })
         .alert("Your Score : \(score)", isPresented: $timeStop, actions: {
@@ -296,6 +297,8 @@ struct ContentView: View {
                 initial()
                 test()
                 timeRemaining = 20
+                timeStop = false
+                start = false
             }
             })
         
